@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">compose-adapter</string>
+    <string name="hero_image">hero-image</string>
+</resources>

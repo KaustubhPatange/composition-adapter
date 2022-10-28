@@ -1,0 +1,89 @@
+public final class com/kpstv/composition/adapter/AdapterDefinition {
+	public fun <init> ()V
+	public fun <init> (Lcom/kpstv/composition/adapter/DiffCallback;)V
+	public synthetic fun <init> (Lcom/kpstv/composition/adapter/DiffCallback;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun addHolder (Lkotlin/reflect/KClass;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function1;)V
+	public final fun clear ()V
+	public final fun getDiffCallback ()Lcom/kpstv/composition/adapter/DiffCallback;
+	public final fun getHolderDefinitions ()Ljava/util/HashMap;
+	public final fun getLoadItems ()Ljava/util/ArrayList;
+	public final fun setDiffCallback (Lcom/kpstv/composition/adapter/DiffCallback;)V
+	public final fun setInitialLoadItems (Ljava/util/List;)V
+}
+
+public final class com/kpstv/composition/adapter/BuildConfig {
+	public static final field BUILD_TYPE Ljava/lang/String;
+	public static final field DEBUG Z
+	public static final field LIBRARY_PACKAGE_NAME Ljava/lang/String;
+	public fun <init> ()V
+}
+
+public final class com/kpstv/composition/adapter/ComposeAdapter : androidx/paging/PagingDataAdapter {
+	public fun <init> (Lcom/kpstv/composition/adapter/AdapterDefinition;)V
+	public fun getItemCount ()I
+	public fun getItemViewType (I)I
+	public synthetic fun onBindViewHolder (Landroidx/recyclerview/widget/RecyclerView$ViewHolder;I)V
+	public synthetic fun onBindViewHolder (Landroidx/recyclerview/widget/RecyclerView$ViewHolder;ILjava/util/List;)V
+	public fun onBindViewHolder (Lcom/kpstv/composition/adapter/ComposeAdapter$ComposeViewHolder;I)V
+	public fun onBindViewHolder (Lcom/kpstv/composition/adapter/ComposeAdapter$ComposeViewHolder;ILjava/util/List;)V
+	public synthetic fun onCreateViewHolder (Landroid/view/ViewGroup;I)Landroidx/recyclerview/widget/RecyclerView$ViewHolder;
+	public fun onCreateViewHolder (Landroid/view/ViewGroup;I)Lcom/kpstv/composition/adapter/ComposeAdapter$ComposeViewHolder;
+	public synthetic fun onViewAttachedToWindow (Landroidx/recyclerview/widget/RecyclerView$ViewHolder;)V
+	public fun onViewAttachedToWindow (Lcom/kpstv/composition/adapter/ComposeAdapter$ComposeViewHolder;)V
+	public synthetic fun onViewDetachedFromWindow (Landroidx/recyclerview/widget/RecyclerView$ViewHolder;)V
+	public fun onViewDetachedFromWindow (Lcom/kpstv/composition/adapter/ComposeAdapter$ComposeViewHolder;)V
+}
+
+public final class com/kpstv/composition/adapter/ComposeAdapter$ComposeViewHolder : androidx/recyclerview/widget/RecyclerView$ViewHolder {
+	public fun <init> (Landroidx/viewbinding/ViewBinding;Lcom/kpstv/composition/adapter/HolderDefinition;)V
+	public synthetic fun <init> (Landroidx/viewbinding/ViewBinding;Lcom/kpstv/composition/adapter/HolderDefinition;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun bind (Ljava/lang/Object;I)V
+	public final fun getBinding ()Landroidx/viewbinding/ViewBinding;
+	public final fun getConfig ()Lcom/kpstv/composition/adapter/HolderDefinition;
+}
+
+public final class com/kpstv/composition/adapter/ComposeAdapterKt {
+	public static final fun composeAdapter (Landroidx/lifecycle/LifecycleOwner;Lkotlin/jvm/functions/Function1;)Lcom/kpstv/composition/adapter/ComposeAdapter;
+	public static synthetic fun composeAdapter$default (Landroidx/lifecycle/LifecycleOwner;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/kpstv/composition/adapter/ComposeAdapter;
+	public static final fun withLoadingStateAdapters (Lcom/kpstv/composition/adapter/ComposeAdapter;Lcom/kpstv/composition/adapter/ComposeAdapter;Lcom/kpstv/composition/adapter/ComposeAdapter;)Landroidx/recyclerview/widget/ConcatAdapter;
+	public static synthetic fun withLoadingStateAdapters$default (Lcom/kpstv/composition/adapter/ComposeAdapter;Lcom/kpstv/composition/adapter/ComposeAdapter;Lcom/kpstv/composition/adapter/ComposeAdapter;ILjava/lang/Object;)Landroidx/recyclerview/widget/ConcatAdapter;
+}
+
+public class com/kpstv/composition/adapter/DiffCallback : androidx/recyclerview/widget/DiffUtil$ItemCallback {
+	public fun <init> ()V
+	public fun areContentsTheSame (Ljava/lang/Object;Ljava/lang/Object;)Z
+	public fun areItemsTheSame (Ljava/lang/Object;Ljava/lang/Object;)Z
+}
+
+public final class com/kpstv/composition/adapter/HolderDefinition {
+	public fun <init> (Lkotlin/jvm/functions/Function3;Lcom/kpstv/composition/adapter/ViewHolderConfig;)V
+	public final fun component1 ()Lkotlin/jvm/functions/Function3;
+	public final fun component2 ()Lcom/kpstv/composition/adapter/ViewHolderConfig;
+	public final fun copy (Lkotlin/jvm/functions/Function3;Lcom/kpstv/composition/adapter/ViewHolderConfig;)Lcom/kpstv/composition/adapter/HolderDefinition;
+	public static synthetic fun copy$default (Lcom/kpstv/composition/adapter/HolderDefinition;Lkotlin/jvm/functions/Function3;Lcom/kpstv/composition/adapter/ViewHolderConfig;ILjava/lang/Object;)Lcom/kpstv/composition/adapter/HolderDefinition;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getGenerateBinding ()Lkotlin/jvm/functions/Function3;
+	public final fun getViewHolderConfig ()Lcom/kpstv/composition/adapter/ViewHolderConfig;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/kpstv/composition/adapter/ViewHolderConfig {
+	public fun <init> ()V
+	public fun <init> (Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function4;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;)V
+	public synthetic fun <init> (Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function4;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getLifecycle ()Landroidx/lifecycle/Lifecycle;
+	public final fun getLifecycleOwner ()Landroidx/lifecycle/LifecycleOwner;
+	public final fun getLifecycleScope ()Landroidx/lifecycle/LifecycleCoroutineScope;
+	public final fun getOnAttach ()Lkotlin/jvm/functions/Function1;
+	public final fun getOnBind ()Lkotlin/jvm/functions/Function3;
+	public final fun getOnBindPayload ()Lkotlin/jvm/functions/Function4;
+	public final fun getOnCreate ()Lkotlin/jvm/functions/Function1;
+	public final fun getOnDetach ()Lkotlin/jvm/functions/Function1;
+	public final fun setOnAttach (Lkotlin/jvm/functions/Function1;)V
+	public final fun setOnBind (Lkotlin/jvm/functions/Function3;)V
+	public final fun setOnBindPayload (Lkotlin/jvm/functions/Function4;)V
+	public final fun setOnCreate (Lkotlin/jvm/functions/Function1;)V
+	public final fun setOnDetach (Lkotlin/jvm/functions/Function1;)V
+}
+
