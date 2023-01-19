@@ -11,9 +11,10 @@ import androidx.paging.LoadState
 import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.ConcatAdapter
 import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
+import com.kpstv.composition.adapter.internals.LifecycleStateObserver
+import com.kpstv.composition.adapter.internals.RecyclerItemLifecycleOwner
 import java.util.*
 import kotlin.collections.set
 import kotlin.reflect.KClass
@@ -21,13 +22,6 @@ import kotlin.reflect.KClass
 /*
  * Author: Kaustubh Patange (KP)
  */
-
-internal fun interface LifecycleStateObserver : LifecycleEventObserver {
-    override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
-        onChange(source, event)
-    }
-    fun onChange(source: LifecycleOwner, event: Lifecycle.Event)
-}
 
 typealias ViewBindingGenerator<VB> = (inflater: LayoutInflater, parent: ViewGroup?, root: Boolean) -> VB
 
@@ -64,7 +58,7 @@ class ViewHolderConfig<ITEM, VB: ViewBinding>(
     /**
      * Called during `onViewAttachedToWindow`.
      */
-    var onAttach: VB.() -> Unit = {},
+    var onAttach: VB.(Int) -> Unit = {},
     /**
      * Called during `onViewDetachedToWindow`.
      */
@@ -88,7 +82,7 @@ class ViewHolderConfig<ITEM, VB: ViewBinding>(
      */
     val lifecycleScope get() = owner.lifecycleScope
 
-    private class Owner : LifecycleOwner {
+    private class Owner : RecyclerItemLifecycleOwner() {
         val lifecycleRegistry = LifecycleRegistry(this)
 
         override fun getLifecycle(): Lifecycle = lifecycleRegistry
@@ -99,9 +93,10 @@ class ViewHolderConfig<ITEM, VB: ViewBinding>(
         // rebinding again even though view is already recycled.
         try {
             owner.lifecycleRegistry.handleLifecycleEvent(state)
-        } catch (e: Exception) { }
-        if (state == Lifecycle.Event.ON_DESTROY) {
+        } catch (e: Exception) {
+            // try again
             owner = Owner()
+            owner.lifecycleRegistry.handleLifecycleEvent(state)
         }
     }
 }
@@ -229,13 +224,13 @@ class ComposeAdapter<ITEM: Any>(
     override fun onViewAttachedToWindow(holder: ComposeViewHolder<ITEM>) {
         holder.config?.let { config ->
             config.viewHolderConfig.moveToState(Lifecycle.Event.ON_RESUME)
-            config.viewHolderConfig.onAttach(holder.binding)
+            config.viewHolderConfig.onAttach(holder.binding, holder.bindingAdapterPosition)
         }
     }
 
     override fun onViewDetachedFromWindow(holder: ComposeViewHolder<ITEM>) {
         holder.config?.let { config ->
-            config.viewHolderConfig.moveToState(Lifecycle.Event.ON_DESTROY)
+            config.viewHolderConfig.moveToState(Lifecycle.Event.ON_STOP)
             config.viewHolderConfig.onDetach(holder.binding)
         }
     }
@@ -303,4 +298,22 @@ fun <ITEM: Any> ComposeAdapter<ITEM>.withLoadingStateAdapters(
         appendLoadAdapter?.enableLoadState = states.append is LoadState.Loading
     }
     return ConcatAdapter(listOfNotNull(initialLoadAdapter, this, appendLoadAdapter))
+}
+
+/**
+ * Add static loading adapters for data which is not paginated
+ * for initial state (when data is not yet available).
+ *
+ * These are [ComposeAdapter], you can customize them accordingly.
+ */
+fun <ITEM: Any> ComposeAdapter<ITEM>.withStaticLoadingStateAdapter(
+    initialLoadAdapter: ComposeAdapter<ITEM>? = null,
+): ConcatAdapter {
+    initialLoadAdapter?.startIndex = 0
+    initialLoadAdapter?.enableLoadState = true
+
+    addOnPagesUpdatedListener {
+        initialLoadAdapter?.enableLoadState = false
+    }
+    return ConcatAdapter(listOfNotNull(initialLoadAdapter, this))
 }
