@@ -9,12 +9,18 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.viewbinding.ViewBinding
 
-abstract class AbstractFragment<VB: ViewBinding>(@LayoutRes id: Int) : Fragment(id) {
+interface AbstractNavigation {
+    fun navigate(fragment: Fragment, addToBackStack: Boolean = true)
+}
+
+abstract class AbstractFragment<VB : ViewBinding>(@LayoutRes id: Int) : Fragment(id) {
     private var _binding: VB? = null
 
     val binding get() = _binding!!
     val viewLifecycleScope get() = viewLifecycleOwner.lifecycleScope
     val viewLifecycle get() = viewLifecycleOwner.lifecycle
+    val navigator
+        get() = (parentFragment as? AbstractNavigation) ?: (requireActivity() as AbstractNavigation)
 
     abstract fun attachBinding(view: View): VB
     override fun onCreateView(
