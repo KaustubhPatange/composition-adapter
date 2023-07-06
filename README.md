@@ -1,4 +1,4 @@
-# composition-adapters
+# composition-adapter
 
 A simplified way of writing RecyclerView Adapter through Kotlin DSL promoting composition over
 inheritance. It internally creates a [Paging3 Adapter](#q-why-paging3-adapter).
