@@ -62,6 +62,7 @@ internal abstract class RecyclerItemLifecycleOwner : LifecycleOwner {
             }
 
             if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) && event.targetState.isAtLeast(Lifecycle.State.CREATED)) {
+                lifecycle.removeObserver(this)
                 job.cancel()
                 job = SupervisorJob()
             }
