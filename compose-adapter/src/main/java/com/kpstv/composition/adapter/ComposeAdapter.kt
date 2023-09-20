@@ -62,7 +62,7 @@ class ViewHolderConfig<ITEM, VB : ViewBinding>(
     /**
      * Called during `onViewDetachedToWindow`.
      */
-    var onDetach: ComposeViewHolderScope<VB>.() -> Unit = {},
+    var onDetach: ComposeViewHolderScope<VB>.(Int) -> Unit = {},
 )
 
 data class HolderDefinition<ITEM : Any, VB : ViewBinding>(
@@ -203,7 +203,7 @@ class ComposeAdapter<ITEM : Any>(
 
 /**
  * `ComposeViewHolderScope` holds all the public APIs related to Lifecycle
- * and View binding.
+ * and ViewBinding.
  */
 class ComposeViewHolderScope<VB : ViewBinding>(
     private val owner: LifecycleOwner,
@@ -228,10 +228,14 @@ class ComposeViewHolderScope<VB : ViewBinding>(
 }
 
 /**
- * A Lifecycle aware ViewHolder for `ComposeAdapter`
+ * A Lifecycle aware ViewHolder for `ComposeAdapter`. The ViewHolder is itself responsible for
+ * handling lifecycle based on the callbacks it receives from the RecyclerView.Adapter.
+ *
+ * The only callbacks respected are `onAttach` (where the view is visible to user) and `onDetach`
+ * where the view is removed from the parent view.
  */
 class ComposeViewHolder<ITEM : Any>(
-    val binding: ViewBinding,
+    binding: ViewBinding,
     private val config: HolderDefinition<ITEM, ViewBinding>? = null,
 ) : RecyclerView.ViewHolder(binding.root) {
 
@@ -274,7 +278,7 @@ class ComposeViewHolder<ITEM : Any>(
     fun onDetach() {
         config?.let { config ->
             moveToState(Lifecycle.Event.ON_STOP)
-            config.viewHolderConfig.onDetach(scope)
+            config.viewHolderConfig.onDetach(scope, bindingAdapterPosition)
         }
     }
 
