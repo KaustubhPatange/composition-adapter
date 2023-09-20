@@ -35,73 +35,37 @@ typealias ViewBindingGenerator<VB> = (inflater: LayoutInflater, parent: ViewGrou
  * }
  * ```
  */
-open class DiffCallback<ITEM: Any> : DiffUtil.ItemCallback<ITEM>() {
+open class DiffCallback<ITEM : Any> : DiffUtil.ItemCallback<ITEM>() {
     override fun areItemsTheSame(oldItem: ITEM, newItem: ITEM): Boolean = oldItem === newItem
     override fun areContentsTheSame(oldItem: ITEM, newItem: ITEM): Boolean =
         Objects.hashCode(oldItem) == Objects.hashCode(newItem)
 }
 
 @CompositionViewHolderMarker
-class ViewHolderConfig<ITEM, VB: ViewBinding>(
+class ViewHolderConfig<ITEM, VB : ViewBinding>(
     /**
      * Called during `onCreateViewHolder`.
      */
-    var onCreate: VB.() -> Unit = {},
+    var onCreate: ComposeViewHolderScope<VB>.() -> Unit = {},
     /**
      * Called during `onBindViewHolder`.
      */
-    var onBind: VB.(ITEM, Int) -> Unit = { _, _ -> },
+    var onBind: ComposeViewHolderScope<VB>.(ITEM, Int) -> Unit = { _, _ -> },
     /**
      * Called during `onBindViewHolder(..., payloads)`.
      */
-    var onBindPayload: VB.(ITEM, Int, List<Any>) -> Unit = { _, _, _ -> },
+    var onBindPayload: ComposeViewHolderScope<VB>.(ITEM, Int, List<Any>) -> Unit = { _, _, _ -> },
     /**
      * Called during `onViewAttachedToWindow`.
      */
-    var onAttach: VB.(Int) -> Unit = {},
+    var onAttach: ComposeViewHolderScope<VB>.(Int) -> Unit = {},
     /**
      * Called during `onViewDetachedToWindow`.
      */
-    var onDetach: VB.() -> Unit = {},
-) {
-    private var owner = Owner()
+    var onDetach: ComposeViewHolderScope<VB>.(Int) -> Unit = {},
+)
 
-    /**
-     * A [LifecycleOwner] bound to this ViewHolder.
-     */
-    val lifecycleOwner get() = (owner as LifecycleOwner)
-
-    /**
-     * A [Lifecycle] bound to this ViewHolder.
-     */
-    val lifecycle get() = owner.lifecycle
-
-    /**
-     * A [LifecycleCoroutineScope] bound to this ViewHolder, will be cancelled
-     * when the ViewHolder is detached.
-     */
-    val lifecycleScope get() = owner.lifecycleScope
-
-    private class Owner : RecyclerItemLifecycleOwner() {
-        val lifecycleRegistry = LifecycleRegistry(this)
-
-        override fun getLifecycle(): Lifecycle = lifecycleRegistry
-    }
-
-    internal fun moveToState(state: Lifecycle.Event) {
-        // sometimes adapter does detach view from window before
-        // rebinding again even though view is already recycled.
-        try {
-            owner.lifecycleRegistry.handleLifecycleEvent(state)
-        } catch (e: Exception) {
-            // try again
-            owner = Owner()
-            owner.lifecycleRegistry.handleLifecycleEvent(state)
-        }
-    }
-}
-
-data class HolderDefinition<ITEM: Any, VB : ViewBinding>(
+data class HolderDefinition<ITEM : Any, VB : ViewBinding>(
     val generateBinding: ViewBindingGenerator<VB>,
     val viewHolderConfig: ViewHolderConfig<ITEM, VB>,
 )
@@ -120,12 +84,13 @@ class AdapterDefinition<ITEM : Any>(
      * Add a holder definition for a [type] & supporting [ViewBinding] generator
      * through [generateBinding].
      */
-    fun <T: ITEM, VB : ViewBinding> addHolder(
+    fun <T : ITEM, VB : ViewBinding> addHolder(
         type: KClass<T>,
         generateBinding: ViewBindingGenerator<VB>,
         viewHolderConfig: ViewHolderConfig<T, VB>.() -> Unit
     ) {
-        val definition = HolderDefinition(generateBinding, ViewHolderConfig<T, VB>().apply(viewHolderConfig))
+        val definition =
+            HolderDefinition(generateBinding, ViewHolderConfig<T, VB>().apply(viewHolderConfig))
         holderDefinitions[type.hashCode()] = definition as HolderDefinition<ITEM, ViewBinding>
     }
 
@@ -155,9 +120,9 @@ class AdapterDefinition<ITEM : Any>(
  * launch coroutines which will be cancelled when ViewHolder is detached.
  * You also get onCreate, onBind & such functions.
  */
-class ComposeAdapter<ITEM: Any>(
+class ComposeAdapter<ITEM : Any>(
     private val definition: AdapterDefinition<ITEM>
-) : PagingDataAdapter<ITEM, ComposeAdapter.ComposeViewHolder<ITEM>>(definition.diffCallback) {
+) : PagingDataAdapter<ITEM, ComposeViewHolder<ITEM>>(definition.diffCallback) {
 
     internal var startIndex = 0
     internal var enableLoadState: Boolean = false
@@ -181,9 +146,9 @@ class ComposeAdapter<ITEM: Any>(
             )
         }
         val binding = config.generateBinding(inflater, parent, false)
-        config.viewHolderConfig.moveToState(Lifecycle.Event.ON_CREATE)
-        config.viewHolderConfig.onCreate(binding)
-        return ComposeViewHolder(binding, config)
+        return ComposeViewHolder(binding, config).apply {
+            onCreate()
+        }
     }
 
     override fun onBindViewHolder(holder: ComposeViewHolder<ITEM>, position: Int) {
@@ -191,10 +156,15 @@ class ComposeAdapter<ITEM: Any>(
         holder.bind(item, position)
     }
 
-    override fun onBindViewHolder(holder: ComposeViewHolder<ITEM>, position: Int, payloads: MutableList<Any>) {
+    override fun onBindViewHolder(
+        holder: ComposeViewHolder<ITEM>,
+        position: Int,
+        payloads: MutableList<Any>
+    ) {
+
         val item = findItem(position)
         if (payloads.isNotEmpty() && item != null) {
-            holder.config?.let { it.viewHolderConfig.onBindPayload(holder.binding, item, position, payloads) }
+            holder.bindPayload(item, position, payloads)
         } else {
             super.onBindViewHolder(holder, position, payloads)
         }
@@ -222,32 +192,109 @@ class ComposeAdapter<ITEM: Any>(
     }
 
     override fun onViewAttachedToWindow(holder: ComposeViewHolder<ITEM>) {
-        holder.config?.let { config ->
-            config.viewHolderConfig.moveToState(Lifecycle.Event.ON_RESUME)
-            config.viewHolderConfig.onAttach(holder.binding, holder.bindingAdapterPosition)
-        }
+        holder.onAttach()
     }
 
     override fun onViewDetachedFromWindow(holder: ComposeViewHolder<ITEM>) {
-        holder.config?.let { config ->
-            config.viewHolderConfig.moveToState(Lifecycle.Event.ON_STOP)
-            config.viewHolderConfig.onDetach(holder.binding)
+        holder.onDetach()
+    }
+}
+
+
+/**
+ * `ComposeViewHolderScope` holds all the public APIs related to Lifecycle
+ * and ViewBinding.
+ */
+class ComposeViewHolderScope<VB : ViewBinding>(
+    private val owner: LifecycleOwner,
+    val binding: VB
+) {
+
+    /**
+     * A [LifecycleOwner] bound to this ViewHolder.
+     */
+    val lifecycleOwner get() = owner
+
+    /**
+     * A [Lifecycle] bound to this ViewHolder.
+     */
+    val lifecycle get() = owner.lifecycle
+
+    /**
+     * A [LifecycleCoroutineScope] bound to this ViewHolder, will be cancelled
+     * when the ViewHolder is detached.
+     */
+    val lifecycleScope get() = (owner as RecyclerItemLifecycleOwner).lifecycleScope
+}
+
+/**
+ * A Lifecycle aware ViewHolder for `ComposeAdapter`. The ViewHolder is itself responsible for
+ * handling lifecycle based on the callbacks it receives from the RecyclerView.Adapter.
+ *
+ * The only callbacks respected are `onAttach` (where the view is visible to user) and `onDetach`
+ * where the view is removed from the parent view.
+ */
+class ComposeViewHolder<ITEM : Any>(
+    binding: ViewBinding,
+    private val config: HolderDefinition<ITEM, ViewBinding>? = null,
+) : RecyclerView.ViewHolder(binding.root) {
+
+    private var owner = Owner()
+
+    private val scope = ComposeViewHolderScope(owner, binding)
+
+    private class Owner : RecyclerItemLifecycleOwner() {
+        val lifecycleRegistry = LifecycleRegistry(this)
+        override fun getLifecycle(): Lifecycle {
+            return lifecycleRegistry
         }
     }
 
-    // Can't use generics here as it crashes Kotlin's front end compiler :0
-    class ComposeViewHolder<ITEM: Any>(
-        val binding: ViewBinding,
-        val config: HolderDefinition<ITEM, ViewBinding>? = null
-    ) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(item: ITEM, position: Int) {
-            config?.let { config ->
-                config.viewHolderConfig.moveToState(Lifecycle.Event.ON_RESUME)
-                config.viewHolderConfig.onBind(binding, item, position)
-            }
+    private fun moveToState(state: Lifecycle.Event) {
+        // sometimes adapter does detach view from window before
+        // rebinding again even though view is already recycled.
+        try {
+            owner.lifecycleRegistry.handleLifecycleEvent(state)
+        } catch (e: Exception) {
+            // try again
+            owner = Owner()
+            owner.lifecycleRegistry.handleLifecycleEvent(state)
+        }
+    }
+
+    fun onCreate() {
+        config?.let { config ->
+            config.viewHolderConfig.onCreate(scope)
+        }
+    }
+
+    fun onAttach() {
+        config?.let { config ->
+            moveToState(Lifecycle.Event.ON_RESUME)
+            config.viewHolderConfig.onAttach(scope, bindingAdapterPosition)
+        }
+    }
+
+    fun onDetach() {
+        config?.let { config ->
+            moveToState(Lifecycle.Event.ON_STOP)
+            config.viewHolderConfig.onDetach(scope, bindingAdapterPosition)
+        }
+    }
+
+    fun bind(item: ITEM, position: Int) {
+        config?.let { config ->
+            config.viewHolderConfig.onBind(scope, item, position)
+        }
+    }
+
+    fun bindPayload(item: ITEM, position: Int, payloads: MutableList<Any>) {
+        config?.let {
+            config.viewHolderConfig.onBindPayload(scope, item, position, payloads)
         }
     }
 }
+
 
 /**
  * A DSL for [ComposeAdapter].
@@ -278,7 +325,7 @@ fun <ITEM : Any> composeAdapter(
  *
  * Both are [ComposeAdapter], you can customize them accordingly.
  */
-fun <ITEM: Any> ComposeAdapter<ITEM>.withLoadingStateAdapters(
+fun <ITEM : Any> ComposeAdapter<ITEM>.withLoadingStateAdapters(
     initialLoadAdapter: ComposeAdapter<ITEM>? = null,
     appendLoadAdapter: ComposeAdapter<ITEM>? = null,
 ): ConcatAdapter {
@@ -306,7 +353,7 @@ fun <ITEM: Any> ComposeAdapter<ITEM>.withLoadingStateAdapters(
  *
  * These are [ComposeAdapter], you can customize them accordingly.
  */
-fun <ITEM: Any> ComposeAdapter<ITEM>.withStaticLoadingStateAdapter(
+fun <ITEM : Any> ComposeAdapter<ITEM>.withStaticLoadingStateAdapter(
     initialLoadAdapter: ComposeAdapter<ITEM>? = null,
 ): ConcatAdapter {
     initialLoadAdapter?.startIndex = 0

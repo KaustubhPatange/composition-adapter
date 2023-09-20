@@ -30,8 +30,10 @@ val adapter = composeAdapter {
         DataClassViewBinding::inflate
     ) {
         onBind = { item, _ ->
-            this.textView.text = ...
-           // ^? "this" is your ViewBinding context.
+            with(this.binding) {
+              this.textView.text = ...
+              // ^? "this" is your ViewBinding context.
+            }
         }
     }
 }
