@@ -23,9 +23,11 @@ class MainAdapter {
                 ItemLayoutBinding::inflate
             ) {
                 onBind = { item, _ ->
-                    imageView.load(item.imageUrl)
-                    title.text = item.title
-                    description.text = item.description
+                    with(this.binding) {
+                        imageView.load(item.imageUrl)
+                        title.text = item.title
+                        description.text = item.description
+                    }
                 }
             }
         }

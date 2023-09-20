@@ -43,9 +43,11 @@ private fun AdapterDefinition<Nested>.singleItemHolder() {
         ItemLayoutBinding::inflate
     ) {
         onBind = { item, _ ->
-            imageView.load(singleCacheImageUrl(item.imageUrl))
-            title.visibility = View.GONE
-            description.visibility = View.GONE
+            with(this.binding) {
+                imageView.load(singleCacheImageUrl(item.imageUrl))
+                title.visibility = View.GONE
+                description.visibility = View.GONE
+            }
         }
     }
 }
@@ -56,13 +58,13 @@ private fun AdapterDefinition<Nested>.multipleItemHolder() {
         ItemMultipleLayoutBinding::inflate
     ) {
         onBind = { item, _ ->
-            root.adapter = composeAdapter<Nested> {
+            binding.root.adapter = composeAdapter<Nested> {
                 addHolder(
                     Single::class,
                     ItemMultipleBinding::inflate
                 ) {
                     onBind = { item, _ ->
-                        imageView.load(singleCacheImageUrl(item.imageUrl))
+                        binding.imageView.load(singleCacheImageUrl(item.imageUrl))
                     }
                 }
             }.apply {
